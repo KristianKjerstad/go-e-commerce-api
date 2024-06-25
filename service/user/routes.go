@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/KristianKjerstad/go-e-commerce-api/cmd/service/auth"
-	"github.com/KristianKjerstad/go-e-commerce-api/cmd/types"
-	"github.com/KristianKjerstad/go-e-commerce-api/cmd/utils"
+	"github.com/KristianKjerstad/go-e-commerce-api/service/auth"
+	"github.com/KristianKjerstad/go-e-commerce-api/types"
+	"github.com/KristianKjerstad/go-e-commerce-api/utils"
 	"github.com/go-playground/validator/v10"
 
 	"github.com/gorilla/mux"

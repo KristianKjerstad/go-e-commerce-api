@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/KristianKjerstad/go-e-commerce-api/cmd/types"
+	"github.com/KristianKjerstad/go-e-commerce-api/types"
 	"github.com/gorilla/mux"
 )
 

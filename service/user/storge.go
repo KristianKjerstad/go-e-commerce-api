@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/KristianKjerstad/go-e-commerce-api/cmd/types"
+	"github.com/KristianKjerstad/go-e-commerce-api/types"
 )
 
 type Store struct {
