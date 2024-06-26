@@ -1,6 +1,8 @@
 package types
 
-import "time"
+import (
+	"time"
+)
 
 type RegisterUserPayload struct {
 	FirstName string `json:"firstName" validate:"required"`
@@ -41,4 +43,5 @@ type UserStore interface {
 
 type ProductStore interface {
 	GetProducts() ([]Product, error)
+	CreateProduct(Product) error
 }

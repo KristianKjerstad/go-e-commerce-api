@@ -36,15 +36,15 @@ func ParseJSON(r *http.Request, payload any) error {
 	res := json.NewDecoder(r.Body).Decode(payload)
 
 	// Use reflection to check for zero values in the payload
-	v := reflect.ValueOf(payload).Elem()
-	t := v.Type()
+	// v := reflect.ValueOf(payload).Elem()
+	// t := v.Type()
 
-	for i := 0; i < v.NumField(); i++ {
-		field := v.Field(i)
-		if isZeroValue(field) {
-			return fmt.Errorf("field %s is a zero value", t.Field(i).Name)
-		}
-	}
+	// for i := 0; i < v.NumField(); i++ {
+	// 	field := v.Field(i)
+	// 	if isZeroValue(field) {
+	// 		return fmt.Errorf("field %s is a zero value", t.Field(i).Name)
+	// 	}
+	// }
 	return res
 
 }

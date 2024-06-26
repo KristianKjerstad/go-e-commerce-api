@@ -32,6 +32,14 @@ func (s *Store) GetProducts() ([]types.Product, error) {
 
 }
 
+func (s *Store) CreateProduct(product types.Product) error {
+	_, err := s.db.Exec("INSERT INTO products (id, name, description, image, price, quantity, createdAt) values (?,?,?,?,?,?,?)", product.ID, product.Name, product.Description, product.Image, product.Price, product.Quantity, product.CreatedAt)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func scanRowIntoProduct(rows *sql.Rows) (*types.Product, error) {
 	product := new(types.Product)
 	err := rows.Scan(
