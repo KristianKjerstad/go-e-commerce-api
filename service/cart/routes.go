@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/KristianKjerstad/go-e-commerce-api/service/auth"
 	"github.com/KristianKjerstad/go-e-commerce-api/types"
 	"github.com/KristianKjerstad/go-e-commerce-api/utils"
 	"github.com/gorilla/mux"
@@ -12,19 +13,20 @@ import (
 type Handler struct {
 	store        types.OrderStore
 	productStore types.ProductStore
+	userStore    types.UserStore
 }
 
-func NewHandler(store types.OrderStore, productStore types.ProductStore) *Handler {
+func NewHandler(store types.OrderStore, productStore types.ProductStore, userStore types.UserStore) *Handler {
 	return &Handler{store: store, productStore: productStore}
 }
 
 func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/cart/checkout", h.HandleCheckout).Methods(http.MethodPost)
+	router.HandleFunc("/cart/checkout", auth.WithJWTAuth(h.HandleCheckout, h.userStore)).Methods(http.MethodPost)
 
 }
 
 func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
-	userID := 0 // get from token
+	userID := auth.GetUserIDFromContext(r.Context())
 	var cart types.CartCheckoutPayload
 	err := utils.ParseJSON(r, &cart)
 	if err != nil {
@@ -48,7 +50,7 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orderID, totalPrice, err := h.store.CreateOrder(products, cart.Items, userID)
+	orderID, totalPrice, err := h.createOrder(products, cart.Items, userID)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return

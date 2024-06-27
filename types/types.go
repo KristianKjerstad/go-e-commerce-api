@@ -67,8 +67,8 @@ type ProductStore interface {
 }
 
 type OrderStore interface {
-	CreateOrder(products []Product, items []CartItem, userID int) (int, float64, error)
-	CreateOrderItem(OrderItem) error
+	CreateOrder(order Order) (int, error)
+	CreateOrderItem(orderItem OrderItem) error
 }
 
 type CartItem struct {
