@@ -42,7 +42,7 @@ func (s *Store) GetProductsByIDs(productIDs []int) ([]types.Product, error) {
 	for i, v := range productIDs {
 		args[i] = v
 	}
-	rows, err := s.db.Query(query, args)
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
