@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -30,23 +31,18 @@ func isZeroValue(v reflect.Value) bool {
 
 func ParseJSON(r *http.Request, payload any) error {
 	if r.Body == nil {
-		return fmt.Errorf("Missing request body")
+		return fmt.Errorf("missing request body")
 	}
 
-	res := json.NewDecoder(r.Body).Decode(payload)
+	defer r.Body.Close() // Ensure the body is closed after reading
 
-	// Use reflection to check for zero values in the payload
-	// v := reflect.ValueOf(payload).Elem()
-	// t := v.Type()
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(payload)
+	if err != nil {
+		return fmt.Errorf("failed to decode JSON: %v", err)
+	}
 
-	// for i := 0; i < v.NumField(); i++ {
-	// 	field := v.Field(i)
-	// 	if isZeroValue(field) {
-	// 		return fmt.Errorf("field %s is a zero value", t.Field(i).Name)
-	// 	}
-	// }
-	return res
-
+	return nil
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
@@ -60,3 +56,16 @@ func WriteError(w http.ResponseWriter, status int, err error) {
 }
 
 var Validate = validator.New()
+
+func GetTokenFromRequest(r *http.Request) string {
+	tokenAuth := r.Header.Get("Authorization")
+	const prefix = "Bearer "
+	if !strings.HasPrefix(tokenAuth, prefix) {
+		return "invalid token format"
+	}
+	tokenAuth = strings.TrimPrefix(tokenAuth, prefix)
+	if tokenAuth != "" {
+		return tokenAuth
+	}
+	return ""
+}

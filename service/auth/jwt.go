@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/KristianKjerstad/go-e-commerce-api/config"
@@ -17,84 +16,79 @@ import (
 
 type contextKey string
 
-const UserKey contextKey = "usedID"
+const UserKey contextKey = "userID"
+
+func WithJWTAuth(handlerFunc http.HandlerFunc, store types.UserStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tokenString := utils.GetTokenFromRequest(r)
+
+		token, err := validateJWT(tokenString)
+		if err != nil {
+			log.Printf("failed to validate token: %v", err)
+			permissionDenied(w)
+			return
+		}
+
+		if !token.Valid {
+			log.Println("invalid token")
+			permissionDenied(w)
+			return
+		}
+
+		claims := token.Claims.(jwt.MapClaims)
+		str := claims["userId"].(string)
+
+		userID, err := strconv.Atoi(str)
+		if err != nil {
+			log.Printf("failed to convert userID to int: %v", err)
+			permissionDenied(w)
+			return
+		}
+
+		u, err := store.GetUserById(userID)
+		if err != nil {
+			log.Printf("failed to get user by id: %v", err)
+			permissionDenied(w)
+			return
+		}
+
+		// Add the user to the context
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, UserKey, u.ID)
+		r = r.WithContext(ctx)
+
+		// Call the function if the token is valid
+		handlerFunc(w, r)
+	}
+}
 
 func CreateJWT(secret []byte, userID int) (string, error) {
 	expiration := time.Second * time.Duration(config.EnvConfig.JWTExpirationInSeconds)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"userId":    strconv.Itoa(userID),
-		"expiredAt": time.Now().Add(expiration).Unix(),
+		"userID":    strconv.Itoa(int(userID)),
+		"expiresAt": time.Now().Add(expiration).Unix(),
 	})
 
 	tokenString, err := token.SignedString(secret)
 	if err != nil {
 		return "", err
 	}
-	return tokenString, nil
+
+	return tokenString, err
 }
 
-func WithJWTAuth(handlerFunc http.HandlerFunc, store types.UserStore) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// get token from the user request
-		tokenString := getTokenFromRequest(r)
-		// validate JWT
-		token, err := validateToken(tokenString)
-		if err != nil {
-			log.Printf("Failed to validate token %v", err)
-			PermissionDenied(w)
-			return
+func validateJWT(tokenString string) (*jwt.Token, error) {
+	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		if !token.Valid {
-			log.Println("invalid token")
-			PermissionDenied(w)
-			return
-		}
-
-		claims := token.Claims.(jwt.MapClaims)
-		str := claims["userID"].(string)
-
-		userID, err := strconv.Atoi(str)
-		u, err := store.GetUserById(userID)
-		if err != nil {
-			log.Printf("failed to get user by id %v", err)
-			PermissionDenied(w)
-			return
-		}
-
-		ctx := r.Context()
-		ctx = context.WithValue(ctx, UserKey, u.ID)
-		r = r.WithContext(ctx)
-
-		handlerFunc(w, r)
-
-	}
-}
-
-func getTokenFromRequest(r *http.Request) string {
-	tokenAuth := r.Header.Get("Authorization")
-	const prefix = "Bearer "
-	if !strings.HasPrefix(tokenAuth, prefix) {
-		return "invalid token format"
-	}
-	tokenAuth = strings.TrimPrefix(tokenAuth, prefix)
-	if tokenAuth != "" {
-		return tokenAuth
-	}
-	return ""
-}
-
-func validateToken(t string) (*jwt.Token, error) {
-	return jwt.Parse(t, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method %v", t.Header["alg"])
-		}
 		return []byte(config.EnvConfig.JWTSecret), nil
 	})
 }
 
-func PermissionDenied(w http.ResponseWriter) {
+func permissionDenied(w http.ResponseWriter) {
 	utils.WriteError(w, http.StatusForbidden, fmt.Errorf("permission denied"))
 }
 
